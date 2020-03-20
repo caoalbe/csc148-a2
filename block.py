@@ -1,4 +1,4 @@
-"""CSC148 Assignment 2
+    """CSC148 Assignment 2
 
 === CSC148 Winter 2020 ===
 Department of Computer Science,
@@ -204,18 +204,28 @@ class Block:
 
         If this Block's level is <max_depth>, do nothing. If this block has
         children, do nothing.
-        
+
         Return True iff the smash was performed.
         """
         # TODO: Implement me
-        return True  # FIXME
+        if self.level < self.max_depth:
+
+            self.colour = None
+
+            # Create Children
+            for child in range(4):
+                children.append()
+
+            return True
+        else:  # Block is at max depth, do nothing
+            return False
 
     def swap(self, direction: int) -> bool:
         """Swap the child Blocks of this Block.
 
         If this Block has no children, do nothing. Otherwise, if <direction> is
         1, swap vertically. If <direction> is 0, swap horizontally.
-        
+
         Return True iff the swap was performed.
 
         Precondition: <direction> is either 0 or 1
@@ -228,7 +238,7 @@ class Block:
 
         If this Block has no children, do nothing. If <direction> is 1, rotate
         clockwise. If <direction> is 3, rotate counter-clockwise.
-        
+
         Return True iff the rotate was performed.
 
         Precondition: <direction> is either 1 or 3.
