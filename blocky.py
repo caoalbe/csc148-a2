@@ -48,11 +48,10 @@ def _block_to_squares(board: Block) -> List[Tuple[Tuple[int, int, int],
 
     The order of the squares does not matter.
     """
-    # TODO: Implement me
     output = list()
-    if len(board) == 0:  # Base Case
+    if len(board.children) == 0:  # Base Case
         # <board> is a leaf
-        to_add = (block.colour, block.position, block.size)
+        to_add = (board.colour, board.position, board.size)
         output.append(to_add)
     else:  # Recursive Case
         # <board> has more children
