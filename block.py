@@ -207,18 +207,25 @@ class Block:
 
         Return True iff the smash was performed.
         """
-        # TODO: Implement me
-        if self.level < self.max_depth:
-
+        if not self.smashable():
+            return False
+        else:
             self.colour = None
+            position = self._children_positions()
+            size = self._child_size()
 
-            # Create Children
-            for child in range(4):
-                children.append()
+            for i in range(len(position)):
+                self.children.append(Block(position[i], size,
+                                           random.choice(COLOUR_LIST),
+                                           self.level + 1,
+                                           self.max_depth))
+
+                r = random.random()
+                if r < math.exp(-0.25 * self.level) and \
+                        self.children[i].smashable():
+                    self.children[i].smash()
 
             return True
-        else:  # Block is at max depth, do nothing
-            return False
 
     def swap(self, direction: int) -> bool:
         """Swap the child Blocks of this Block.
