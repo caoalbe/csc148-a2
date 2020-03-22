@@ -45,10 +45,26 @@ def create_players(num_human: int, num_random: int, smart_players: List[int]) \
     <num_random> RandomPlayer objects, then the same number of SmartPlayer
     objects as the length of <smart_players>. The difficulty levels in
     <smart_players> should be applied to each SmartPlayer object, in order.
+    >>> players = create_players(2, 0, [])
     """
-    # TODO: Implement Me
-    goals = generate_goals(1)  # FIXME
-    return [HumanPlayer(0, goals[0])]  # FIXME
+    players = []
+
+    x = 0
+    goals = generate_goals(num_human + num_random + len(smart_players))
+
+    for i in range(num_human):
+        players.append(HumanPlayer(x, goals[x]))
+        x += 1
+
+    for i in range(num_random):
+        players.append(RandomPlayer(x, goals[x]))
+        x += 1
+
+    for i in range(len(smart_players)):
+        players.append(SmartPlayer(x, goals[x], smart_players[i]))
+        x += 1
+
+    return players
 
 
 def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
