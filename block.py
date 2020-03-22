@@ -187,8 +187,14 @@ class Block:
         <position> is the (x, y) coordinates of the upper-left corner of this
         Block.
         """
-        # TODO: Implement me
-        return  # FIXME
+        self.position = position
+
+        if len(self.children) > 0:
+            children_pos = self._children_positions()
+
+            for i in range(4):
+                self.children[i].position = children_pos[i]
+                self.children[i]._update_children_positions(children_pos[i])
 
     def smashable(self) -> bool:
         """Return True iff this block can be smashed.
@@ -237,8 +243,23 @@ class Block:
 
         Precondition: <direction> is either 0 or 1
         """
-        # TODO: Implement me
-        return True  # FIXME
+        if self.children == [] or self.colour is not None:
+            return False
+        else:
+            x = self.children[:]
+            if direction == 0:
+                self.children[0] = x[3]
+                self.children[1] = x[2]
+                self.children[2] = x[1]
+                self.children[3] = x[0]
+            else:
+                self.children[0] = x[1]
+                self.children[1] = x[0]
+                self.children[2] = x[3]
+                self.children[3] = x[2]
+
+            self._update_children_positions(self.position)
+            return True
 
     def rotate(self, direction: int) -> bool:
         """Rotate this Block and all its descendants.
@@ -250,8 +271,25 @@ class Block:
 
         Precondition: <direction> is either 1 or 3.
         """
-        # TODO: Implement me
-        return True  # FIXME
+        if self.children == [] or self.colour is not None:
+            return False
+
+        else:
+            if direction == 1:
+                first = self.children.pop(0)
+                self.children.append(first)
+                self._update_children_positions(self.position)
+                for child in self.children:
+                    child.rotate(direction)
+
+            else:
+                last = self.children.pop()
+                self.children.insert(0, last)
+                self._update_children_positions(self.position)
+                for child in self.children:
+                    child.rotate(direction)
+
+            return True
 
     def paint(self, colour: Tuple[int, int, int]) -> bool:
         """Change this Block's colour iff it is a leaf at a level of max_depth
@@ -259,8 +297,11 @@ class Block:
 
         Return True iff this Block's colour was changed.
         """
-        # TODO: Implement me
-        return True  # FIXME
+        if self.max_depth == self.level and self.colour != colour:
+            self.colour = colour
+            return True
+
+        return False
 
     def combine(self) -> bool:
         """Turn this Block into a leaf based on the majority colour of its
