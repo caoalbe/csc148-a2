@@ -68,9 +68,55 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
 
     Preconditions:
         - 0 <= level <= max_depth
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 3)
+    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 3)
+    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 3)
+    >>> block3 = Block((0, 375), 375, (199, 44, 58), 1, 3)
+    >>> block4 = Block((375, 375), 375, (234, 62, 112), 1, 3)
+    >>> block.children = [block1, block2, block3, block4]
+
+    >>> bloc = _get_block(block, (380, 354), 1)
+    >>> bloc.colour
+    (1, 0, 0)
+    >>> bloc = _get_block(block, (0, 375), 1)
+    >>> bloc.colour
+    (199, 44, 58)
+    >>> bloc = _get_block(block, (500, 677), 1)
+    >>> bloc.colour
+    (234, 62, 112)
+
+    >>> block2.smash()
+    True
+    >>> bloc = _get_block(block, (375, 0), 3)
+    >>> bloc.position
+    (375, 0)
+    >>> bloc.level
+    1
     """
-    # TODO: Implement me
-    return None  # FIXME
+    x, y = location
+
+    if x >= block.position[0] + block.size or \
+            y >= block.position[1] + block.size:
+        # no block can be found at location
+        return None
+
+    else:  # block/leaf can be found at location
+        if level == block.level or block.max_depth == block.level or \
+                block.children == []:
+            return block
+
+        current = block.children[0]
+        for child in block.children:  # find child at location
+            child_x, child_y = child.position
+            if child_x <= x < child_x + child.size and \
+                    child_y <= y < child_y + child.size:
+                current = child
+
+        if current.level < level and current.max_depth > current.level:
+            # recurse through child if level is bigger
+            current = _get_block(current, location, level)
+
+        return current
 
 
 class Player:
