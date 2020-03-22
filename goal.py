@@ -121,9 +121,9 @@ class PerimeterGoal(Goal):
         return 148  # FIXME
 
     def description(self) -> str:
-        # TODO: Implement me
-        return 'DESCRIPTION'  # FIXME
-
+        x = 'Most unit cells of ' + \
+            colour_name(self.colour) + ' on the perimeter'
+        return x
 
 class BlobGoal(Goal):
     def score(self, board: Block) -> int:
@@ -154,8 +154,8 @@ class BlobGoal(Goal):
         pass  # FIXME
 
     def description(self) -> str:
-        # TODO: Implement me
-        return 'DESCRIPTION'  # FIXME
+        x = 'Create a largest “blob” of ' + colour_name(self.colour)
+        return x
 
 
 if __name__ == '__main__':
