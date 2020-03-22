@@ -39,8 +39,32 @@ def generate_goals(num_goals: int) -> List[Goal]:
     Precondition:
         - num_goals <= len(COLOUR_LIST)
     """
-    # TODO: Implement Me
-    return [PerimeterGoal(COLOUR_LIST[0])]  # FIXME
+    >>> len(COLOUR_LIST)
+    4
+    >>> COLOUR_LIST
+    >>> x = generate_goals(4)
+    >>> len(x)
+    4
+    >>> x[0].colour
+    >>> x[1].colour
+    >>> x[2].colour
+    >>> x[3].colour
+    """
+    x = random.randint(0, 1)
+    lst = []
+    unused_colours = COLOUR_LIST.copy()
+    if x == 0:
+        for i in range(num_goals):
+            random_colour = random.choice(unused_colours)
+            unused_colours.remove(random_colour)
+            lst.append(BlobGoal(random_colour))
+    else:
+        for i in range(num_goals):
+            random_colour = random.choice(unused_colours)
+            unused_colours.remove(random_colour)
+            lst.append(PerimeterGoal(random.choice(random_colour)))
+
+    return lst
 
 
 def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
