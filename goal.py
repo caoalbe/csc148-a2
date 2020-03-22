@@ -62,7 +62,7 @@ def generate_goals(num_goals: int) -> List[Goal]:
         for i in range(num_goals):
             random_colour = random.choice(unused_colours)
             unused_colours.remove(random_colour)
-            lst.append(PerimeterGoal(random.choice(random_colour)))
+            lst.append(PerimeterGoal(random_colour))
 
     return lst
 
