@@ -316,16 +316,80 @@ class Block:
 
         Return True iff this Block was turned into a leaf node.
         """
-        # TODO: Implement me
-        return True  # FIXME
+        if self.level != self.max_depth - 1 or self.children == []:
+            return False
+
+        else:
+            x = self._find_majority_colour()
+            if x is None:
+                return False
+
+            self.children = []
+            self.colour = x
+            return True
+
+    def _find_majority_colour(self) -> Optional[Tuple[int, int, int]]:
+        """ Find the majority colour of this block's children. A tie does not
+        constitute a majority (e.g., if there are two red
+        children and two blue children, then there is no majority colour).
+
+        Precondition: the block is at max_depth - 1 and has children.
+
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
+
+        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
+        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
+        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
+        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
+        >>> block.children = [block1, block2, block3, block4]
+
+        >>> block._find_majority_colour()
+        """
+        x = []
+        for child in self.children:
+            x.append(child.colour)
+
+        count = {}
+        for item in x:
+            if item in count.keys():
+                count[item] += 1
+            else:
+                count[item] = 1
+
+        if len(count) == 4:
+            return None
+        if len(count) == 1:
+            keys = list(count.keys())
+            return keys[0]
+        if len(count) == 2:
+            values = list(count.values())
+            keys = list(count.keys())
+            if max(values) == 2:
+                return None
+            else:
+                return keys[values.index(max(values))]
+        if len(count) == 3:
+            values = list(count.values())
+            keys = list(count.keys())
+            return keys[values.index(max(values))]
+        return None
 
     def create_copy(self) -> Block:
         """Return a new Block that is a deep copy of this Block.
 
         Remember that a deep copy has new blocks (not aliases) at every level.
         """
-        # TODO: Implement me
-        pass  # FIXME
+        new_copy = Block(self.position, self.size, self.colour, self.level,
+                         self.max_depth)
+
+        if self.children == []:
+            return new_copy
+        else:
+            new_copy.children = []
+            for child in self.children:
+                new_copy.children.append(child.create_copy())
+
+            return new_copy
 
 
 if __name__ == '__main__':
