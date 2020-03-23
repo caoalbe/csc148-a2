@@ -248,15 +248,15 @@ class Block:
         else:
             x = self.children[:]
             if direction == 0:
-                self.children[0] = x[3]
-                self.children[1] = x[2]
-                self.children[2] = x[1]
-                self.children[3] = x[0]
-            else:
                 self.children[0] = x[1]
                 self.children[1] = x[0]
                 self.children[2] = x[3]
                 self.children[3] = x[2]
+            else:
+                self.children[0] = x[3]
+                self.children[1] = x[2]
+                self.children[2] = x[1]
+                self.children[3] = x[0]
 
             self._update_children_positions(self.position)
             return True
