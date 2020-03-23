@@ -38,7 +38,7 @@ def generate_goals(num_goals: int) -> List[Goal]:
 
     Precondition:
         - num_goals <= len(COLOUR_LIST)
-    """
+
     >>> len(COLOUR_LIST)
     4
     >>> COLOUR_LIST
