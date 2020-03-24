@@ -153,8 +153,22 @@ class Goal:
 
 class PerimeterGoal(Goal):
     def score(self, board: Block) -> int:
-        # TODO: Implement me
-        return 148  # FIXME
+        count = 0
+        game = _flatten(board)
+        for i in range(len(game)):
+            # Top Row
+            if game[i][0] == self.colour:
+                count += 1
+            # Bottom Row
+            if game[i][len(game)-1] == self.colour:
+                count += 1
+            # Left Column
+            if game[0][i] == self.colour:
+                count += 1
+            # Right Column
+            if game[len(game)-1][i] == self.colour:
+                count += 1
+        return count
 
     def description(self) -> str:
         x = 'Most unit cells of ' + \
