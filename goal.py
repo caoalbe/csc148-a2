@@ -81,8 +81,44 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
 
     L[0][0] represents the unit cell in the upper left corner of the Block.
     """
-    # TODO: Implement me
-    return []  # FIXME
+
+    # <block> is a unit block
+    if block.level == block.max_depth:
+        return [[(block.colour)]]
+
+    # <block> is not sub divided
+    if block.smashable():
+        copy = block.create_copy()
+        copy.smash()
+        for child in copy.children:
+            child.colour = block.colour
+        return _flatten(copy)
+
+    # Recursive Case
+    length = 2**(block.max_depth - block.level)
+    diff = int(length/2)
+    output = list()
+
+    top_left = _flatten(block.children[1])
+    top_right = _flatten(block.children[0])
+    bot_left = _flatten(block.children[2])
+    bot_right = _flatten(block.children[3])
+
+    # Allocate Memory
+    for c in range(length):
+        output.append(list())
+        for r in range(length):
+            output[c].append(list())
+
+    for c in range(diff):
+        for r in range(diff):
+            # Distribute
+            output[c][r] = top_left[c][r]  # Insert <top_left>
+            output[c + diff][r] = top_right[c][r]  # Insert <top_right>
+            output[c][r + diff] = bot_left[c][r]  # Insert <bot_left>
+            output[c + diff][r + diff] = bot_right[c][r]  # Insert <bot_right>
+
+    return output
 
 
 class Goal:
