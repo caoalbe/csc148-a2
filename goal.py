@@ -175,10 +175,29 @@ class PerimeterGoal(Goal):
             colour_name(self.colour) + ' on the perimeter'
         return x
 
+
 class BlobGoal(Goal):
     def score(self, board: Block) -> int:
-        # TODO: Implement me
-        return 148  # FIXME
+
+        largest_blob = 0
+
+        board = _flatten(board)
+        visited = list()
+        for col in range(len(board)):
+            visited.append(list())
+            for row in range(len(board[col])):
+                visited[col].append(-1)
+
+        # Search for largest blob
+        for col in range(len(board)):
+            for row in range(len(board)):
+                if visited[col][row] == -1:
+                    cur = self._undiscovered_blob_size((col, row),
+                                                       board,
+                                                       visited)
+                    if cur > largest_blob:
+                        largest_blob = cur
+        return largest_blob
 
     def _undiscovered_blob_size(self, pos: Tuple[int, int],
                                 board: List[List[Tuple[int, int, int]]],
@@ -200,8 +219,44 @@ class BlobGoal(Goal):
         Update <visited> so that all cells that are visited are marked with
         either 0 or 1.
         """
-        # TODO: Implement me
-        pass  # FIXME
+        # Code Outline:
+        # 1) Mark Current Tile on <visited>
+        # 2a) If Current Tile is incorrect colour
+        # 3a) Exit Immediately
+        # 2b) Current Tile is desired colour
+        # 3a) Recursively Call on Adjacent Tiles
+
+        # <pos> is out of board bounds
+        if pos[0] < 0 or pos[1] < 0 or \
+                pos[0] >= len(board) or pos[1] > len(board):
+            return 0
+
+        if board[pos[0]][pos[1]] == self.colour:
+            # Current Tile is Correct Colour
+            visited[pos[0]][pos[1]] = 1
+            blob_size = 1
+        else:
+            # Incorrect Colour
+            visited[pos[0]][pos[1]] = 0
+            return 0
+
+        # Recursive Calls
+        # Sequencing is Up -> Right -> Down -> Left
+        cardinals = [(pos[0], pos[1] - 1),  # Up
+                     (pos[0] + 1, pos[1]),  # Right
+                     (pos[0], pos[1] + 1),  # Down
+                     (pos[0] - 1, pos[1])]  # Left
+        for (x, y) in cardinals:
+            try:
+                if visited[x][y] == -1:  # IndexError should throw here
+                    # (x, y) not visited
+                    blob_size += \
+                        self._undiscovered_blob_size((x, y), board, visited)
+            except IndexError:
+                # We selected and (x, y) out of bounds
+                pass  # Do Nothing
+
+        return blob_size
 
     def description(self) -> str:
         x = 'Create a largest “blob” of ' + colour_name(self.colour)
