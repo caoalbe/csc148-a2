@@ -89,7 +89,7 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     # <block> is not sub divided
     if block.smashable():
         copy = block.create_copy()
-        copy.smash()
+        copy.smash()  # Try creating a <_unit_copy> function to use here
         for child in copy.children:
             child.colour = block.colour
         return _flatten(copy)
