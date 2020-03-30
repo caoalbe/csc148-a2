@@ -135,6 +135,55 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
         return current
 
 
+def _valid_moves(board: Block) -> List[Tuple[str, Optional[int], Block]]:
+    """Return the list of valid moves, including PASS.
+
+    The move is a tuple consisting of a string, an optional integer, and
+    a block. The string indicates the move being made. The integer indicates
+    the direction. And the block indicates which block is being acted on.
+    """
+
+    copy = board.create_copy()  # <copy> is a deep copy
+    output = list()
+
+    # The main gimmick is that if you attempt an impossible move,
+    # nothing is changed
+    # But if you can, just simply invert the operation
+    # Better design would be to have a <swappable> or <paintable>
+
+    if copy.smashable():
+        # <smash> is valid
+        output.append(_create_move(SMASH, board))  # safe to use <board>??
+
+    if copy.swap(0):
+        # <swap> is valid
+        copy.swap(1)
+        output.append(_create_move(SWAP_HORIZONTAL, board))
+        output.append((SWAP_VERTICAL, board))
+
+    if copy.rotate(1):
+        # <rotate> is valid
+        copy.rotate(3)
+        output.append(_create_move(ROTATE_CLOCKWISE, board))
+        output.append(_create_move(ROTATE_COUNTER_CLOCKWISE, board))
+
+    # Painted twice, because if block is has colour (0, 0, 0) then
+    # it doesnt have colour (0, 0, 1).  So one of those colours are distinct
+    if copy.paint((0, 0, 0)) or copy.paint((0, 0, 1)):
+        # <paint> is valid
+        copy.paint(board.colour)
+        output.append(_create_move(PAINT, board))
+
+    # This is the only non-invertible function.  Do it last
+    if copy.combine():
+        # <combine> is valid
+        output.append(_create_move(COMBINE, board))
+
+    output.append(_create_move(PASS, board))
+
+    return output
+
+
 class Player:
     """A player in the Blocky game.
 
@@ -285,51 +334,13 @@ class RandomPlayer(Player):
         if not self._proceed:
             return None  # Do not remove
 
-        copy = board.create_copy()  # <copy> is a deep copy
-        output = list()
-
-        # The main gimmick is that if you attempt an impossible move,
-        # nothing is changed
-        # But if you can, just simply invert the operation
-        # Better design would be to have a <swappable> or <paintable>
-
-        if copy.smashable():
-            # <smash> is valid
-            output.append(_create_move(SMASH, board))  # safe to use <board>??
-
-        if copy.swap(0):
-            # <swap> is valid
-            copy.swap(1)
-            output.append(_create_move(SWAP_HORIZONTAL, board))
-            output.append((SWAP_VERTICAL, board))
-
-        if copy.rotate(1):
-            # <rotate> is valid
-            copy.rotate(3)
-            output.append(_create_move(ROTATE_CLOCKWISE, board))
-            output.append(_create_move(ROTATE_COUNTER_CLOCKWISE, board))
-
-        # Painted twice, because if block is has colour (0, 0, 0) then
-        # it doesnt have colour (0, 0, 1).  So one of those colours are distinct
-        if copy.paint((0, 0, 0)) or copy.paint((0, 0, 1)):
-            # <paint> is valid
-            copy.paint(board.colour)
-            output.append(_create_move(PAINT, board))
-
-        # This is the only non-invertible function.  Do it last
-        if copy.combine():
-            # <combine> is valid
-            output.append(_create_move(COMBINE, board))
-
-        if not output:  # if output == []
-            # No Valid Moves Exist
-            output.append(_create_move(PASS, board))
+        valid_list = _valid_moves(board)
 
         self._proceed = False  # Must set to False before returning!
 
         # Make a random selection
-        random_index = random.randint(0, len(output) - 1)  # This how it works??
-        return output[random_index]
+        random_index = random.randint(0, len(valid_list) - 1)  # This how it works??
+        return valid_list[random_index]
 
 
 class SmartPlayer(Player):
