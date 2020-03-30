@@ -192,6 +192,7 @@ class BlobGoal(Goal):
         for col in range(len(board)):
             for row in range(len(board)):
                 if visited[col][row] == -1:
+                    # Only Call on Uncheck Tiles
                     cur = self._undiscovered_blob_size((col, row),
                                                        board,
                                                        visited)
@@ -221,8 +222,8 @@ class BlobGoal(Goal):
         """
         # Code Outline:
         # 1) Mark Current Tile on <visited>
-        # 2a) If Current Tile is incorrect colour
-        # 3a) Exit Immediately
+        # 2a) Current Tile is incorrect colour
+        # 3a) Exit Immediately/Ascend Depth
         # 2b) Current Tile is desired colour
         # 3a) Recursively Call on Adjacent Tiles
 

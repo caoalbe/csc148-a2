@@ -1,4 +1,4 @@
-    """CSC148 Assignment 2
+"""CSC148 Assignment 2
 
 === CSC148 Winter 2020 ===
 Department of Computer Science,
