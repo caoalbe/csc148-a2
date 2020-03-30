@@ -80,8 +80,32 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     of the block at the cell location[i][j]
 
     L[0][0] represents the unit cell in the upper left corner of the Block.
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 0)
+    >>> _flatten(block)
+    [[(1, 128, 181)]]
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
+    >>> _flatten(block)
+    [[(1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181)]]
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
+    >>> _flatten(block)
+    [[(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)]]
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
+    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
+    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 1)
+    >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 1)
+    >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 1)
+    >>> block.children = [block1, block2, block3, block4]
+    >>> _flatten(block)
+    [[(0, 0, 0), (2, 0, 0)], [(1, 0, 0), (3, 0, 0)]]
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
+    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
+    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 2)
+    >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 2)
+    >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 2)
+    >>> block.children = [block1, block2, block3, block4]
+    >>> _flatten(block)
+    [[(0, 0, 0), (0, 0, 0), (2, 0, 0), (2, 0, 0)], [(0, 0, 0), (0, 0, 0), (2, 0, 0), (2, 0, 0)], [(1, 0, 0), (1, 0, 0), (3, 0, 0), (3, 0, 0)], [(1, 0, 0), (1, 0, 0), (3, 0, 0), (3, 0, 0)]]
     """
-
     # <block> is a unit block
     if block.level == block.max_depth:
         return [[(block.colour)]]
@@ -89,18 +113,35 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     # <block> is not sub divided
     if block.smashable():
         copy = block.create_copy()
-        copy.smash()  # Try creating a <_unit_copy> function to use here
-        for child in copy.children:
-            child.colour = block.colour
+        colour = copy.colour
+        copy.colour = None
+
+        # create children
+        children_size = round(block.size / 2.0)
+        x = block.position[0]
+        y = block.position[1]
+        locations = [(x + children_size, y), (x, y), (x, y + children_size),
+                     (x + children_size, y + children_size)]
+
+        block1 = Block(locations[0], children_size, colour,
+                       copy.level + 1, copy.max_depth)
+        block2 = Block(locations[1], children_size, colour,
+                       copy.level + 1, copy.max_depth)
+        block3 = Block(locations[2], children_size, colour,
+                       copy.level + 1, copy.max_depth)
+        block4 = Block(locations[3], children_size, colour,
+                       copy.level + 1, copy.max_depth)
+        copy.children.extend([block1, block2, block3, block4])
+
         return _flatten(copy)
 
     # Recursive Case
-    length = 2**(block.max_depth - block.level)
-    diff = int(length/2)
+    length = 2 ** (block.max_depth - block.level)
+    diff = int(length / 2)
     output = list()
 
-    top_left = _flatten(block.children[1])
     top_right = _flatten(block.children[0])
+    top_left = _flatten(block.children[1])
     bot_left = _flatten(block.children[2])
     bot_right = _flatten(block.children[3])
 
@@ -219,6 +260,27 @@ class BlobGoal(Goal):
 
         Update <visited> so that all cells that are visited are marked with
         either 0 or 1.
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 0)
+        >>> goal = BlobGoal((1, 128, 181))
+        >>> goal.score(block)
+        1
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
+        >>> goal = BlobGoal((1, 128, 181))
+        >>> goal.score(block)
+        4
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
+        >>> goal = BlobGoal((1, 128, 181))
+        >>> goal.score(block)
+        16
+        >>> block = Block(None, 750, (1, 128, 181), 0, 2)
+        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
+        >>> block2 = Block((0, 0), 375, (1, 0, 0), 1, 2)
+        >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 2)
+        >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 2)
+        >>> block.children = [block1, block2, block3, block4]
+        >>> goal = BlobGoal((1, 0, 0))
+        >>> goal.score(block)
+        8
         """
         # Code Outline:
         # 1) Mark Current Tile on <visited>
