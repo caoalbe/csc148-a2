@@ -136,7 +136,8 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
 
 
 def _valid_moves(board: Block) -> List[Tuple[str, Optional[int], Block]]:
-    """Return the list of valid moves, including PASS.
+    """Return the list of valid moves.  PASS is only included if no other moves
+    are available
 
     The move is a tuple consisting of a string, an optional integer, and
     a block. The string indicates the move being made. The integer indicates
@@ -179,7 +180,8 @@ def _valid_moves(board: Block) -> List[Tuple[str, Optional[int], Block]]:
         # <combine> is valid
         output.append(_create_move(COMBINE, board))
 
-    output.append(_create_move(PASS, board))
+    if len(output) == 0:
+        output.append(_create_move(PASS, board))
 
     return output
 
