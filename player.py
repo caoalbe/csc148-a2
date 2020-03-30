@@ -335,6 +335,8 @@ class RandomPlayer(Player):
             return None  # Do not remove
 
         valid_list = _valid_moves(board)
+        if len(valid_list) > 1:
+            valid_list.pop()  # Removes PASS if there are other options
 
         self._proceed = False  # Must set to False before returning!
 
