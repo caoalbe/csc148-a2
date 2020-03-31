@@ -27,7 +27,7 @@ import random
 import pygame
 
 from block import Block
-from goal import Goal, generate_goals
+from goal import Goal, generate_goals, PerimeterGoal
 
 from actions import KEY_ACTION, ROTATE_CLOCKWISE, ROTATE_COUNTER_CLOCKWISE, \
     SWAP_HORIZONTAL, SWAP_VERTICAL, SMASH, PASS, PAINT, COMBINE
@@ -135,15 +135,43 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
         return current
 
 
-def _valid_moves(board: Block) -> List[Tuple[str, Optional[int], Block]]:
+def _find_random_block(board: Block) -> Block:
+    """Find a random block where the
+    board.level <= block.level <= depth
+    if block the block does not have children, return that block
+    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
+    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
+    >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
+    >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
+    >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
+    >>> block.children = [block1, block2, block3, block4]
+
+    >>> bloc = _find_random_block(block)
+    >>> bloc.level == 1 or bloc.level == 0
+    True
+    """
+    depth = random.randint(0, board.max_depth)
+    position = board.position
+    size = board.size - 1
+
+    x_random = random.randint(position[0], position[0] + size)
+    y_random = random.randint(position[1], position[1] + size)
+
+    block = _get_block(board, (x_random, y_random), depth)
+    return block
+
+
+def _valid_moves(board: Block, colour: Tuple[int, int, int]) -> \
+        List[Tuple[str, Optional[int], Block]]:
     """Return the list of valid moves.  PASS is always included at the end.
 
     The move is a tuple consisting of a string, an optional integer, and
     a block. The string indicates the move being made. The integer indicates
     the direction. And the block indicates which block is being acted on.
+
+    <colour> is the goal colour to check if PAINT action is valid.
     """
 
-    copy = board.create_copy()  # <copy> is a deep copy
     output = list()
 
     # The main gimmick is that if you attempt an impossible move,
@@ -151,35 +179,30 @@ def _valid_moves(board: Block) -> List[Tuple[str, Optional[int], Block]]:
     # But if you can, just simply invert the operation
     # Better design would be to have a <swappable> or <paintable>
 
-    if copy.smashable():
+    if board.smashable():
         # <smash> is valid
         output.append(_create_move(SMASH, board))  # safe to use <board>??
 
-    if copy.swap(0):
+    if board.children != [] and board.colour is None:
         # <swap> is valid
-        copy.swap(1)
         output.append(_create_move(SWAP_HORIZONTAL, board))
-        output.append((SWAP_VERTICAL, board))
+        output.append(_create_move(SWAP_VERTICAL, board))
 
-    if copy.rotate(1):
+    if board.children != [] and board.colour is None:
         # <rotate> is valid
-        copy.rotate(3)
         output.append(_create_move(ROTATE_CLOCKWISE, board))
         output.append(_create_move(ROTATE_COUNTER_CLOCKWISE, board))
 
     # Painted twice, because if block is has colour (0, 0, 0) then
     # it doesnt have colour (0, 0, 1).  So one of those colours are distinct
-    if copy.paint((0, 0, 0)) or copy.paint((0, 0, 1)):
+    if board.max_depth == board.level and board.colour != colour:
         # <paint> is valid
-        copy.paint(board.colour)
         output.append(_create_move(PAINT, board))
 
     # This is the only non-invertible function.  Do it last
-    if copy.combine():
+    if board.level == board.max_depth - 1 and board.children != []:
         # <combine> is valid
         output.append(_create_move(COMBINE, board))
-
-    output.append(_create_move(PASS, board))
 
     return output
 
@@ -334,13 +357,26 @@ class RandomPlayer(Player):
         if not self._proceed:
             return None  # Do not remove
 
-        valid_list = _valid_moves(board).pop()
-
         self._proceed = False  # Must set to False before returning!
+        colour = self.goal.colour
+
+        if board.max_depth == board.level:  # block is the max depth
+            valid_list = _valid_moves(board, colour)
+            random_index = random.randint(0, len(valid_list) - 1)
+            return valid_list[random_index]
+
+        # find random block at random depth
+        block = _find_random_block(board)
+
+        # generate valid moves on that random block
+        copy = block.create_copy()
+        valid_list = _valid_moves(copy, colour)
 
         # Make a random selection
-        random_index = random.randint(0, len(valid_list) - 1)  # This how it works??
-        return valid_list[random_index]
+        random_index = random.randint(0, len(valid_list) - 1)
+        move = valid_list[random_index][0]
+        direction = valid_list[random_index][1]
+        return move, direction, block
 
 
 class SmartPlayer(Player):
@@ -378,31 +414,84 @@ class SmartPlayer(Player):
         if not self._proceed:
             return None  # Do not remove
 
-        moves = _valid_moves(board)
+        colour = self.goal.colour
 
-        if len(moves) == 1:
-            # Only valid move is to PASS
-            return _create_move(PASS, board)
-
-        moves.pop()  # Pop off PASS move
-
-        if self._difficulty < len(moves):
-            # Sample Moves
-            moves = random.sample(moves, self._difficulty)
-
-        # Moves now refers to all the actions to check
-        # Search for best move
         best_score = self.goal.score(board)
         best_move = PASS
+        main_copy = board.create_copy()
+        current_block = main_copy
+        cur_score = self.goal.score(board)
+
+        moves = self._valid_move_list(main_copy, self._difficulty)
+
         for move in moves:
-            copy = board.create_copy
-            cur_score = self.goal.score(copy.ACTION_KEY[move[0]])
+            main_copy = board.create_copy()
+            block_being_moved = _get_block(main_copy, move[2].position,
+                                           move[2].level)
+
+            if move[0] == 'swap' and move[1] == 0:
+                block_being_moved.swap(0)
+
+            elif move[0] == 'swap' and move[1] == 1:
+                block_being_moved.swap(1)
+
+            elif move[0] == 'combine':
+                block_being_moved.combine()
+
+            elif move[0] == 'paint':
+                block_being_moved.paint(colour)
+
+            elif move[0] == 'rotate' and move[1] == 1:
+                block_being_moved.rotate(1)
+
+            elif move[0] == 'rotate' and move[1] == 3:
+                block_being_moved.rotate(3)
+
+            elif move[0] == 'smash':
+                block_being_moved.smash()
+
+            cur_score = self.goal.score(main_copy)
             if cur_score > best_score:
                 best_score = cur_score
-                best_move = move[0]
+                best_move = (move[0], move[1])
+                current_block = move[2]
+
+        # find the block corresponding to the <board>
+        block_being_moved = _get_block(board, current_block.position,
+                                       current_block.level)
+
+        if cur_score == self.goal.score(board):
+            return _create_move(PASS, block_being_moved)
 
         self._proceed = False  # Must set to False before returning!
-        return _create_move(best_move, board)
+        return _create_move(best_move, block_being_moved)
+
+    def _valid_move_list(self, board: Block, difficulty: int) -> \
+            List[Tuple[str, Optional[int], Block]]:
+        """Return a list of length n with valid moves on a random block in the
+        <board>
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
+        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
+        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 2)
+        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 2)
+        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 2)
+        >>> block.children = [block1, block2, block3, block4]
+        >>> block.colour = None
+
+        >>> goal = PerimeterGoal((5, 0, 0))
+        >>> smart = SmartPlayer(1, goal, 1)
+        >>> smart._valid_move_list(block, 2)
+        """
+
+        moves = []
+        colour = self.goal.colour
+
+        for i in range(difficulty):
+            # find random block, the moves do not need to be unique
+            block = _find_random_block(board)
+            moves.extend(_valid_moves(block, colour))
+
+        return moves
 
 
 if __name__ == '__main__':
