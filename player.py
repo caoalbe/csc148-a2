@@ -362,6 +362,8 @@ class RandomPlayer(Player):
 
         if board.max_depth == board.level:  # block is the max depth
             valid_list = _valid_moves(board, colour)
+            if len(valid_list) == 0:  # no valid moves
+                return self.generate_move(board)
             random_index = random.randint(0, len(valid_list) - 1)
             return valid_list[random_index]
 
@@ -371,6 +373,9 @@ class RandomPlayer(Player):
         # generate valid moves on that random block
         copy = block.create_copy()
         valid_list = _valid_moves(copy, colour)
+
+        if len(valid_list) == 0:  # no valid moves
+            return self.generate_move(board)
 
         # Make a random selection
         random_index = random.randint(0, len(valid_list) - 1)
