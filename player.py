@@ -27,7 +27,7 @@ import random
 import pygame
 
 from block import Block
-from goal import Goal, generate_goals, PerimeterGoal
+from goal import Goal, generate_goals
 
 from actions import KEY_ACTION, ROTATE_CLOCKWISE, ROTATE_COUNTER_CLOCKWISE, \
     SWAP_HORIZONTAL, SWAP_VERTICAL, SMASH, PASS, PAINT, COMBINE
@@ -45,23 +45,22 @@ def create_players(num_human: int, num_random: int, smart_players: List[int]) \
     <num_random> RandomPlayer objects, then the same number of SmartPlayer
     objects as the length of <smart_players>. The difficulty levels in
     <smart_players> should be applied to each SmartPlayer object, in order.
-    >>> players = create_players(2, 0, [])
     """
     players = []
 
     x = 0
     goals = generate_goals(num_human + num_random + len(smart_players))
 
-    for i in range(num_human):
+    for dummy in range(num_human):
         players.append(HumanPlayer(x, goals[x]))
         x += 1
 
-    for i in range(num_random):
+    for dummy in range(num_random):
         players.append(RandomPlayer(x, goals[x]))
         x += 1
 
-    for i in range(len(smart_players)):
-        players.append(SmartPlayer(x, goals[x], smart_players[i]))
+    for player in smart_players:
+        players.append(SmartPlayer(x, goals[x], player))
         x += 1
 
     return players
@@ -84,30 +83,7 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
 
     Preconditions:
         - 0 <= level <= max_depth
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 3)
-    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 3)
-    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 3)
-    >>> block3 = Block((0, 375), 375, (199, 44, 58), 1, 3)
-    >>> block4 = Block((375, 375), 375, (234, 62, 112), 1, 3)
-    >>> block.children = [block1, block2, block3, block4]
 
-    >>> bloc = _get_block(block, (380, 354), 1)
-    >>> bloc.colour
-    (1, 0, 0)
-    >>> bloc = _get_block(block, (0, 375), 1)
-    >>> bloc.colour
-    (199, 44, 58)
-    >>> bloc = _get_block(block, (500, 677), 1)
-    >>> bloc.colour
-    (234, 62, 112)
-
-    >>> block2.smash()
-    True
-    >>> bloc = _get_block(block, (375, 0), 3)
-    >>> bloc.position
-    (375, 0)
-    >>> bloc.level
-    1
     """
     x, y = location
 
@@ -139,16 +115,7 @@ def _find_random_block(board: Block) -> Block:
     """Find a random block where the
     board.level <= block.level <= depth
     if block the block does not have children, return that block
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
-    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
-    >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
-    >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
-    >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
-    >>> block.children = [block1, block2, block3, block4]
 
-    >>> bloc = _find_random_block(block)
-    >>> bloc.level == 1 or bloc.level == 0
-    True
     """
     depth = random.randint(0, board.max_depth)
     position = board.position
@@ -328,10 +295,12 @@ class HumanPlayer(Player):
 
 
 class RandomPlayer(Player):
-    # === Private Attributes ===
-    # _proceed:
-    #   True when the player should make a move, False when the player should
-    #   wait.
+    """A computer player who makes a random valid move on a random block.
+    Random players do not pass.
+    === Private Attributes ===
+    _proceed: True when the player should make a move,
+              False when the player should wait.
+    """
     _proceed: bool
 
     def __init__(self, player_id: int, goal: Goal) -> None:
@@ -385,10 +354,17 @@ class RandomPlayer(Player):
 
 
 class SmartPlayer(Player):
-    # === Private Attributes ===
-    # _proceed:
-    #   True when the player should make a move, False when the player should
-    #   wait.
+    """A computer player that chooses moves more intelligently: It generates a
+    set of random moves and, for each move, checks what its score would be if
+    it were to make that move. Then it picks the one that yields the best score.
+    === Private Attributes ===
+    _proceed:
+      True when the player should make a move, False when the player should
+      wait.
+    _difficulty:
+      A level indicating how difficult the smart player
+      is to play against.
+    """
     _proceed: bool
     _difficulty: int
 
@@ -421,10 +397,7 @@ class SmartPlayer(Player):
 
         self._proceed = False  # Must set to False before returning!
 
-        best_move = PASS
         main_copy = board.create_copy()
-        current_block = main_copy
-        cur_score = self.goal.score(board)
 
         moves = self._valid_move_list(main_copy, self._difficulty)
 
@@ -443,29 +416,12 @@ class SmartPlayer(Player):
         return x[0], x[1], block_being_moved
 
     def _calculate_best_move(self, board: Block,
-                              moves: List[Tuple[str, Optional[int], Block]]) -> [Tuple[str, Optional[int], Block]]:
+                             moves: List[Tuple[str, Optional[int], Block]]) \
+            -> [Tuple[str, Optional[int], Block]]:
         """Return the best move that would result in the highest score
-        disregarding penalties.
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
-        >>> block1 = Block((375, 0), 375, None, 1, 2)
-        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 2)
-        >>> block3 = Block((0, 375), 375, (5, 0, 0), 1, 2)
-        >>> block4 = Block((375, 375), 375, (2, 3, 1), 1, 2)
-        >>> block5 = Block((563, 0), 188, (6, 0, 0), 2, 2)
-        >>> block6 = Block((375, 0), 188, (6, 0, 0), 2, 2)
-        >>> block7 = Block((375, 188), 188, (5, 0, 0), 2, 2)
-        >>> block8 = Block((563, 188), 188, (1, 0, 0), 2, 2)
-        >>> block1.children = [block5, block6, block7, block8]
-        >>> block.children = [block1, block2, block3, block4]
-        >>> block.colour = None
+        disregarding penalties on the board.
 
-        >>> goal = PerimeterGoal((5, 0, 0))
-        >>> smart = SmartPlayer(1, goal, 10)
-        >>> moves = smart._valid_move_list(block, 10)
-        >>> moves
-
-        >>> x = smart._calculate_best_move(block, moves)
-        >>> x
+        The method does not mutate <board>.
         """
         best_score = self.goal.score(board)
         best_move = ('pass', None)
@@ -507,28 +463,14 @@ class SmartPlayer(Player):
 
     def _valid_move_list(self, board: Block, difficulty: int) -> \
             List[Tuple[str, Optional[int], Block]]:
-        """Return a list of length n with valid moves on some random blocks
-        in the <board>
-        >>> block = Block((0, 0), 750, (9, 0, 0), 0, 0)
-        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
-        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
-        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
-        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
-        >>> block.children = [block1, block2, block3, block4]
-        >>> block.colour = None
-
-        >>> goal = PerimeterGoal((5, 0, 0))
-        >>> smart = SmartPlayer(1, goal, 5)
-        >>> moves = smart._valid_move_list(block, 10)
-        >>> len(moves)
-        10
-        >>> moves
+        """Return a list of length n valid moves on some random blocks
+        in the <board>.
         """
 
         moves = []
         colour = self.goal.colour
 
-        for i in range(difficulty):
+        for dummy in range(difficulty):
             # find random block, the moves do not need to be unique
             block = _find_random_block(board)
             moves.extend(_valid_moves(block, colour))
