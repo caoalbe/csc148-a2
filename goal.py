@@ -93,7 +93,7 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
         bot_right = Block(locations[3], children_size, copy.colour,
                           copy.level + 1, copy.max_depth)
 
-        copy.children.extend(top_right, top_left, bot_left, bot_right)
+        copy.children.extend([top_right, top_left, bot_left, bot_right])
         copy.colour = None
         return _flatten(copy)
 
