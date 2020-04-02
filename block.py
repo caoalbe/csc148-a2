@@ -120,10 +120,6 @@ class Block:
 
     def __str__(self) -> str:
         """Return this Block in a string format.
-
-        >>> block = Block((0, 0), 750, (0, 0, 0), 0, 1)
-        >>> str(block)
-        'Leaf: colour=Black, pos=(0, 0), size=750, level=0\\n'
         """
         if len(self.children) == 0:
             indents = '\t' * self.level
@@ -334,16 +330,6 @@ class Block:
         children and two blue children, then there is no majority colour).
 
         Precondition: the block is at max_depth - 1 and has children.
-
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
-
-        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
-        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
-        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
-        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
-        >>> block.children = [block1, block2, block3, block4]
-
-        >>> block._find_majority_colour()
         """
         x = []
         for child in self.children:
