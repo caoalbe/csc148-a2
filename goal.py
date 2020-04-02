@@ -84,14 +84,16 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
         locations = [(x + children_size, y), (x, y), (x, y + children_size),
                      (x + children_size, y + children_size)]
 
-        copy.children.extend([Block(locations[0], children_size, copy.colour,
-                                    copy.level + 1, copy.max_depth),
-                              Block(locations[1], children_size, copy.colour,
-                                    copy.level + 1, copy.max_depth),
-                              Block(locations[2], children_size, copy.colour,
-                                    copy.level + 1, copy.max_depth),
-                              Block(locations[3], children_size, copy.colour,
-                                    copy.level + 1, copy.max_depth)])
+        top_right = Block(locations[0], children_size, copy.colour,
+                          copy.level + 1, copy.max_depth)
+        top_left = Block(locations[1], children_size, copy.colour,
+                         copy.level + 1, copy.max_depth)
+        bot_left = Block(locations[2], children_size, copy.colour,
+                         copy.level + 1, copy.max_depth)
+        bot_right = Block(locations[3], children_size, copy.colour,
+                          copy.level + 1, copy.max_depth)
+
+        copy.children.extend(top_right, top_left, bot_left, bot_right)
         copy.colour = None
         return _flatten(copy)
 
