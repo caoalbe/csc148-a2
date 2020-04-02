@@ -22,7 +22,6 @@ Misha Schwartz, and Jaisie Sin
 This file contains the hierarchy of Goal classes.
 """
 from __future__ import annotations
-import math
 import random
 from typing import List, Tuple
 from block import Block
@@ -38,28 +37,17 @@ def generate_goals(num_goals: int) -> List[Goal]:
 
     Precondition:
         - num_goals <= len(COLOUR_LIST)
-
-    >>> len(COLOUR_LIST)
-    4
-    >>> COLOUR_LIST
-    >>> x = generate_goals(4)
-    >>> len(x)
-    4
-    >>> x[0].colour
-    >>> x[1].colour
-    >>> x[2].colour
-    >>> x[3].colour
     """
     x = random.randint(0, 1)
     lst = []
     unused_colours = COLOUR_LIST.copy()
     if x == 0:
-        for i in range(num_goals):
+        for dummy in range(num_goals):
             random_colour = random.choice(unused_colours)
             unused_colours.remove(random_colour)
             lst.append(BlobGoal(random_colour))
     else:
-        for i in range(num_goals):
+        for dummy in range(num_goals):
             random_colour = random.choice(unused_colours)
             unused_colours.remove(random_colour)
             lst.append(PerimeterGoal(random_colour))
@@ -80,31 +68,6 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     of the block at the cell location[i][j]
 
     L[0][0] represents the unit cell in the upper left corner of the Block.
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 0)
-    >>> _flatten(block)
-    [[(1, 128, 181)]]
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
-    >>> _flatten(block)
-    [[(1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181)]]
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
-    >>> _flatten(block)
-    [[(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)], [(1, 128, 181), (1, 128, 181), (1, 128, 181), (1, 128, 181)]]
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
-    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
-    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 1)
-    >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 1)
-    >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 1)
-    >>> block.children = [block1, block2, block3, block4]
-    >>> _flatten(block)
-    [[(0, 0, 0), (2, 0, 0)], [(1, 0, 0), (3, 0, 0)]]
-    >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
-    >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
-    >>> block2 = Block((0, 0), 375, (0, 0, 0), 1, 2)
-    >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 2)
-    >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 2)
-    >>> block.children = [block1, block2, block3, block4]
-    >>> _flatten(block)
-    [[(0, 0, 0), (0, 0, 0), (2, 0, 0), (2, 0, 0)], [(0, 0, 0), (0, 0, 0), (2, 0, 0), (2, 0, 0)], [(1, 0, 0), (1, 0, 0), (3, 0, 0), (3, 0, 0)], [(1, 0, 0), (1, 0, 0), (3, 0, 0), (3, 0, 0)]]
     """
     # <block> is a unit block
     if block.level == block.max_depth:
@@ -193,6 +156,9 @@ class Goal:
 
 
 class PerimeterGoal(Goal):
+    """A goal of getting the largest number of unit cells of the goal colour
+    on the perimeter. Corner units count twice towards the score.
+    """
     def score(self, board: Block) -> int:
         count = 0
         game = _flatten(board)
@@ -201,25 +167,25 @@ class PerimeterGoal(Goal):
             if game[i][0] == self.colour:
                 count += 1
             # Bottom Row
-            if game[i][len(game)-1] == self.colour:
+            if game[i][len(game) - 1] == self.colour:
                 count += 1
             # Left Column
             if game[0][i] == self.colour:
                 count += 1
             # Right Column
-            if game[len(game)-1][i] == self.colour:
+            if game[len(game) - 1][i] == self.colour:
                 count += 1
         return count
 
     def description(self) -> str:
-        x = 'Most unit cells of ' + \
+        return 'Most unit cells of ' + \
             colour_name(self.colour) + ' on the perimeter'
-        return x
 
 
 class BlobGoal(Goal):
+    """A goal of getting the largest blob of the target colour.
+    """
     def score(self, board: Block) -> int:
-
         largest_blob = 0
 
         board = _flatten(board)
@@ -233,7 +199,6 @@ class BlobGoal(Goal):
         for col in range(len(board)):
             for row in range(len(board)):
                 if visited[col][row] == -1:
-                    # Only Call on Uncheck Tiles
                     cur = self._undiscovered_blob_size((col, row),
                                                        board,
                                                        visited)
@@ -260,32 +225,11 @@ class BlobGoal(Goal):
 
         Update <visited> so that all cells that are visited are marked with
         either 0 or 1.
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 0)
-        >>> goal = BlobGoal((1, 128, 181))
-        >>> goal.score(block)
-        1
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 1)
-        >>> goal = BlobGoal((1, 128, 181))
-        >>> goal.score(block)
-        4
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
-        >>> goal = BlobGoal((1, 128, 181))
-        >>> goal.score(block)
-        16
-        >>> block = Block(None, 750, (1, 128, 181), 0, 2)
-        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
-        >>> block2 = Block((0, 0), 375, (1, 0, 0), 1, 2)
-        >>> block3 = Block((0, 375), 375, (2, 0, 0), 1, 2)
-        >>> block4 = Block((375, 375), 375, (3, 0, 0), 1, 2)
-        >>> block.children = [block1, block2, block3, block4]
-        >>> goal = BlobGoal((1, 0, 0))
-        >>> goal.score(block)
-        8
         """
         # Code Outline:
         # 1) Mark Current Tile on <visited>
-        # 2a) Current Tile is incorrect colour
-        # 3a) Exit Immediately/Ascend Depth
+        # 2a) If Current Tile is incorrect colour
+        # 3a) Exit Immediately
         # 2b) Current Tile is desired colour
         # 3a) Recursively Call on Adjacent Tiles
 
@@ -293,7 +237,6 @@ class BlobGoal(Goal):
         if pos[0] < 0 or pos[1] < 0 or \
                 pos[0] >= len(board) or pos[1] > len(board):
             return 0
-
         if board[pos[0]][pos[1]] == self.colour:
             # Current Tile is Correct Colour
             visited[pos[0]][pos[1]] = 1
@@ -302,13 +245,13 @@ class BlobGoal(Goal):
             # Incorrect Colour
             visited[pos[0]][pos[1]] = 0
             return 0
-
         # Recursive Calls
         # Sequencing is Up -> Right -> Down -> Left
         cardinals = [(pos[0], pos[1] - 1),  # Up
                      (pos[0] + 1, pos[1]),  # Right
                      (pos[0], pos[1] + 1),  # Down
                      (pos[0] - 1, pos[1])]  # Left
+
         for (x, y) in cardinals:
             try:
                 if visited[x][y] == -1:  # IndexError should throw here
@@ -322,8 +265,7 @@ class BlobGoal(Goal):
         return blob_size
 
     def description(self) -> str:
-        x = 'Create a largest “blob” of ' + colour_name(self.colour)
-        return x
+        return 'Create a largest “blob” of ' + colour_name(self.colour)
 
 
 if __name__ == '__main__':
