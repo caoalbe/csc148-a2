@@ -419,15 +419,57 @@ class SmartPlayer(Player):
         if not self._proceed:
             return None  # Do not remove
 
-        colour = self.goal.colour
+        self._proceed = False  # Must set to False before returning!
 
-        best_score = self.goal.score(board)
         best_move = PASS
         main_copy = board.create_copy()
         current_block = main_copy
         cur_score = self.goal.score(board)
 
         moves = self._valid_move_list(main_copy, self._difficulty)
+
+        if moves == []:
+            return _create_move(PASS, board)
+
+        x = self._calculate_best_move(board, moves)
+
+        # find the block corresponding to the <board>
+        block_being_moved = _get_block(board, x[2].position,
+                                       x[2].level)
+
+        if cur_score == self.goal.score(board):
+            return _create_move(PASS, board)
+
+        return x[0], x[1], block_being_moved
+
+    def _calculate_best_move(self, board: Block,
+                              moves: List[Tuple[str, Optional[int], Block]]) -> [Tuple[str, Optional[int], Block]]:
+        """Return the best move that would result in the highest score
+        disregarding penalties.
+        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
+        >>> block1 = Block((375, 0), 375, None, 1, 2)
+        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 2)
+        >>> block3 = Block((0, 375), 375, (0, 0, 0), 1, 2)
+        >>> block4 = Block((375, 375), 375, (2, 3, 1), 1, 2)
+        >>> block5 = Block((563, 0), 188, (6, 0, 0), 2, 2)
+        >>> block6 = Block((375, 0), 188, (6, 0, 0), 2, 2)
+        >>> block7 = Block((375, 188), 188, (5, 0, 0), 2, 2)
+        >>> block8 = Block((563, 188), 188, (1, 0, 0), 2, 2)
+        >>> block1.children = [block5, block6, block7, block8]
+        >>> block.children = [block1, block2, block3, block4]
+        >>> block.colour = None
+
+        >>> goal = PerimeterGoal((5, 0, 0))
+        >>> smart = SmartPlayer(1, goal, 10)
+        >>> moves = smart._valid_move_list(block, 10)
+        >>> moves
+
+        >>> x = smart._calculate_best_move(block, moves)
+        >>> x
+        """
+        best_score = self.goal.score(board)
+        best_move = ('pass', None)
+        current_block = board
 
         for move in moves:
             main_copy = board.create_copy()
@@ -444,7 +486,7 @@ class SmartPlayer(Player):
                 block_being_moved.combine()
 
             elif move[0] == 'paint':
-                block_being_moved.paint(colour)
+                block_being_moved.paint(self.goal.colour)
 
             elif move[0] == 'rotate' and move[1] == 1:
                 block_being_moved.rotate(1)
@@ -456,36 +498,33 @@ class SmartPlayer(Player):
                 block_being_moved.smash()
 
             cur_score = self.goal.score(main_copy)
+            print(str(move[2]))
+            print(cur_score)
             if cur_score > best_score:
                 best_score = cur_score
                 best_move = (move[0], move[1])
                 current_block = move[2]
 
-        # find the block corresponding to the <board>
-        block_being_moved = _get_block(board, current_block.position,
-                                       current_block.level)
-
-        if cur_score == self.goal.score(board):
-            return _create_move(PASS, block_being_moved)
-
-        self._proceed = False  # Must set to False before returning!
-        return _create_move(best_move, block_being_moved)
+        return _create_move(best_move, current_block)
 
     def _valid_move_list(self, board: Block, difficulty: int) -> \
             List[Tuple[str, Optional[int], Block]]:
-        """Return a list of length n with valid moves on a random block in the
-        <board>
-        >>> block = Block((0, 0), 750, (1, 128, 181), 0, 2)
-        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 2)
-        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 2)
-        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 2)
-        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 2)
+        """Return a list of length n with valid moves on some random blocks
+        in the <board>
+        >>> block = Block((0, 0), 750, (9, 0, 0), 0, 0)
+        >>> block1 = Block((375, 0), 375, (1, 0, 0), 1, 1)
+        >>> block2 = Block((0, 0), 375, (2, 0, 0), 1, 1)
+        >>> block3 = Block((0, 375), 375, (1, 0, 0), 1, 1)
+        >>> block4 = Block((375, 375), 375, (2, 0, 0), 1, 1)
         >>> block.children = [block1, block2, block3, block4]
         >>> block.colour = None
 
         >>> goal = PerimeterGoal((5, 0, 0))
-        >>> smart = SmartPlayer(1, goal, 1)
-        >>> smart._valid_move_list(block, 2)
+        >>> smart = SmartPlayer(1, goal, 5)
+        >>> moves = smart._valid_move_list(block, 5)
+        >>> len(moves)
+        10
+        >>> moves
         """
 
         moves = []
@@ -495,6 +534,8 @@ class SmartPlayer(Player):
             # find random block, the moves do not need to be unique
             block = _find_random_block(board)
             moves.extend(_valid_moves(block, colour))
+        if len(moves) > difficulty:
+            moves = random.sample(moves, difficulty)
 
         return moves
 
