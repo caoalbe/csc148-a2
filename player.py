@@ -531,7 +531,7 @@ class SmartPlayer(Player):
         for i in range(difficulty):
             # find random block, the moves do not need to be unique
             block = _find_random_block(board)
-            moves.append(_valid_moves(block, colour))
+            moves.extend(_valid_moves(block, colour))
         if len(moves) > difficulty:
             moves = random.sample(moves, difficulty)
         return moves
