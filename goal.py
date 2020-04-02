@@ -76,8 +76,6 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     # <block> is not sub divided
     if block.smashable():
         copy = block.create_copy()
-        colour = copy.colour
-        copy.colour = None
 
         # create children
         children_size = round(block.size / 2.0)
@@ -86,16 +84,15 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
         locations = [(x + children_size, y), (x, y), (x, y + children_size),
                      (x + children_size, y + children_size)]
 
-        block1 = Block(locations[0], children_size, colour,
-                       copy.level + 1, copy.max_depth)
-        block2 = Block(locations[1], children_size, colour,
-                       copy.level + 1, copy.max_depth)
-        block3 = Block(locations[2], children_size, colour,
-                       copy.level + 1, copy.max_depth)
-        block4 = Block(locations[3], children_size, colour,
-                       copy.level + 1, copy.max_depth)
-        copy.children.extend([block1, block2, block3, block4])
-
+        copy.children.extend([Block(locations[0], children_size, copy.colour,
+                                    copy.level + 1, copy.max_depth),
+                              Block(locations[1], children_size, copy.colour,
+                                    copy.level + 1, copy.max_depth),
+                              Block(locations[2], children_size, copy.colour,
+                                    copy.level + 1, copy.max_depth),
+                              Block(locations[3], children_size, copy.colour,
+                                    copy.level + 1, copy.max_depth)])
+        copy.colour = None
         return _flatten(copy)
 
     # Recursive Case
@@ -187,6 +184,7 @@ class BlobGoal(Goal):
     """
     def score(self, board: Block) -> int:
         largest_blob = 0
+        iterable = list()
 
         board = _flatten(board)
         visited = list()
@@ -194,16 +192,16 @@ class BlobGoal(Goal):
             visited.append(list())
             for row in range(len(board[col])):
                 visited[col].append(-1)
+                iterable.append((col, row))
 
         # Search for largest blob
-        for col in range(len(board)):
-            for row in range(len(board)):
-                if visited[col][row] == -1:
-                    cur = self._undiscovered_blob_size((col, row),
-                                                       board,
-                                                       visited)
-                    if cur > largest_blob:
-                        largest_blob = cur
+        for col, row in iterable:
+            if visited[col][row] == -1:
+                cur = self._undiscovered_blob_size((col, row),
+                                                   board,
+                                                   visited)
+                if cur > largest_blob:
+                    largest_blob = cur
         return largest_blob
 
     def _undiscovered_blob_size(self, pos: Tuple[int, int],
